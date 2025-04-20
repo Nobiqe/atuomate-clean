@@ -79,6 +79,20 @@ def load_image(image_data, is_first_image=True):
         image = cv2.rotate(image, cv2.ROTATE_90_CLOCKWISE)
     return image
 
+def detect_and_extract_text(image, is_first_image=True):
+    H, W = image.shape[:2]  # Get image dimensions
+    # Crop image based on whether it's the first or second image
+    if is_first_image:
+        crop_y_start = int(H * CROP_RATIO_FIRST)
+        crop_y_end = int(W * SHIFT_PERCENTAGE_RIGHT)
+        crop_x_start = int(W * SHIFT_PERCENTAGE_LEFT)
+        cropped_image = image[crop_y_start:H, crop_x_start:W - crop_y_end]
+    else:
+        crop_y_start = 0
+        crop_y_end = int(H * SHIFT_PERCENTAGE_RIGHT)
+        crop_x_start = int(W * 0.5)
+        cropped_image = image[crop_y_start:crop_y_end, crop_x_start:W]
+
 def process_id_card(first_image_data, second_image_data,job_output_dir,log_file):
     logger = setup_logging(log_file) #Initialize logger 
     if not MODEL_YOLO or MODEL_POLO:
