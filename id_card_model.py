@@ -106,3 +106,19 @@ def process_id_card(first_image_data, second_image_data,job_output_dir,log_file)
                 person_path = os.path.join(job_output_dir, "person.jpg")
                 cv2.imwrite(person_path, detection["cropped_object"])  # Save person image
                 break
+
+    # Extract text from images
+    all_texts = []
+    text_result_first = detect_and_extract_text(first_cropped, True)
+    for detection in text_result_first["text_detections"]:
+        text = convert_persian_to_english_numbers(detection["text"])
+        all_texts.append(text)
+        print(f"Debug: First image text: {text}")
+
+    text_result_second = detect_and_extract_text(second_image, False)
+    for detection in text_result_second["text_detections"]:
+        text = convert_persian_to_english_numbers(detection["text"])
+        if "تاریخ" in text:
+            text = fix_date(text)  # Fix date format
+        all_texts.append(text)
+        print(f"Debug: Second image text: {text}")
