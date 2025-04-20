@@ -43,6 +43,33 @@ def normalize_text(text):
         return normalizer.normalize(text)  # Normalize text
     return text
 
+# Convert Persian numbers to English numbers and format dates
+def convert_persian_to_english_numbers(text):
+    if not isinstance(text, str):
+        return text
+    persian_to_english = str.maketrans('۰۱۲۳۴۵۶۷۸۹', '0123456789')  # Mapping for digits
+    text = text.translate(persian_to_english)  # Convert digits
+    date_pattern = r'(\d{4})\s*/\s*(\d{1,2})\s*/\s*(\d{1,2})'  # Date pattern
+    match = re.search(date_pattern, text)
+    if match:
+        year, month, day = match.groups()
+        return f"{year} / {int(month):02d} / {int(day):02d}"  # Format date
+    return text
+
+# Fix date format to ensure consistency
+def fix_date(text):
+    digits = re.findall(r'\d+', text)  # Extract digits
+    if len(digits) >= 3 and len(digits[0]) == 4:  # Check for year, month, day
+        year, month, day = digits[:3]
+        try:
+            month_int = int(month)
+            day_int = int(day)
+            if 1 <= month_int <= 12 and 1 <= day_int <= 31:  # Validate date
+                return f"{year} / {month_int:02d} / {day_int:02d}"  # Return formatted date
+        except ValueError:
+            pass
+    return text
+
 # Set up logging to file
 def setup_logging(log_file):
     logger = logging.getLogger('IDCardProcessor')  # Create logger
