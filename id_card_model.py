@@ -148,7 +148,34 @@ def detect_and_extract_text(image, is_first_image=True):
         merged_boxes.append(merged_bbox)
         merged_texts.append(' '.join(group_texts))  # Join texts
         used[i] = True
-            
+    text_detections = []
+    for idx, bbox in enumerate(merged_boxes):
+        top_left = tuple(map(int, bbox[0]))  # Top-left corner
+        bottom_right = tuple(map(int, bbox[2]))  # Bottom-right corner
+        padding_x, padding_y = 20, max(2, int((bottom_right[1] - top_left[1]) / 4))  # Padding
+        top_left_padded = (max(0, top_left[0] - padding_x), max(0, top_left[1] - padding_y))
+        bottom_right_padded = (min(W_crop, bottom_right[0] + padding_x), min(H_crop, bottom_right[1] + padding_y))
+
+        # Crop region for OCR
+        cropped_region = cropped_image[top_left_padded[1]:bottom_right_padded[1], top_left_padded[0]:bottom_right_padded[0]]
+        preprocessed_region = preprocess_image(cropped_region)  # Preprocess region
+
+        # Use Hezar model for first image, EasyOCR for second
+        if is_first_image:
+            ocr_model = Model.load("hezarai/crnn-fa-printed-96-long")  # Load Hezar OCR model
+            pil_image = Image.fromarray(cv2.cvtColor(preprocessed_region, cv2.COLOR_GRAY2RGB))
+            text = ocr_model.predict(pil_image)[0]["text"]  # Run OCR
+        else:
+            text = reader.readtext(preprocessed_region, **OCR_PARAMS)[0][1] if reader.readtext(preprocessed_region, **OCR_PARAMS) else merged_texts[idx]
+
+        text = normalize_text(text.strip())  # Normalize extracted text
+        cv2.rectangle(image_with_boxes, top_left_padded, bottom_right_padded, (0, 255, 0), 2)  # Draw box
+        text_detections.append({"text": text})
+
+    # Save annotated image
+    output_path = os.path.join(OUTPUT_DIR, f"annotated_{'first' if is_first_image else 'second'}.jpg")
+    cv2.imwrite(output_path, image_with_boxes)
+    return {"text_detections": text_detections, "annotated_path": output_path}            
 
 def process_id_card(first_image_data, second_image_data,job_output_dir,log_file):
     logger = setup_logging(log_file) #Initialize logger 
