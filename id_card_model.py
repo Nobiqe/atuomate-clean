@@ -35,3 +35,15 @@ try:
 except Exception as e:
     print(f"Error loading models: {e}")
     MODEL_POLO = MODEL_YOLO = None  # Set models to None if loading fails
+
+# Set up logging to file
+def setup_logging(log_file):
+    logger = logging.getLogger('IDCardProcessor')  # Create logger
+    logger.setLevel(logging.INFO)  # Set logging level
+    logger.handlers = []  # Clear existing handlers
+    handler = logging.FileHandler(log_file, encoding='utf-8', mode='w')  # File handler
+    handler.setLevel(logging.INFO)
+    formatter = logging.Formatter('%(message)s')  # Simple log format
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+    return logger
