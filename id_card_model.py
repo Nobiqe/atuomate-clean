@@ -94,6 +94,15 @@ def process_id_card(first_image_data, second_image_data,job_output_dir,log_file)
     polo_result = process_image(first_image, MODEL_POLO)
     if not polo_result:
         return {"status": "error", "message": "No ID card detected", "data": None}
-    
+    #croped id card from image 
     first_cropped = polo_result["detections"][0]["cropped_object"]  # Get cropped ID card
 
+    # Detect person in cropped image
+    person_result = process_image(first_cropped, MODEL_YOLO)
+    person_path = None
+    if person_result:
+        for detection in person_result["detections"]:
+            if detection["class"] == "person":
+                person_path = os.path.join(job_output_dir, "person.jpg")
+                cv2.imwrite(person_path, detection["cropped_object"])  # Save person image
+                break
