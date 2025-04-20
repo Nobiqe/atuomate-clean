@@ -47,3 +47,12 @@ def setup_logging(log_file):
     handler.setFormatter(formatter)
     logger.addHandler(handler)
     return logger
+
+
+def process_id_card(first_image_data, second_image_data,job_output_dir,log_file):
+    logger = setup_logging(log_file) #Initialize logger 
+    if not MODEL_YOLO or MODEL_POLO:
+        return {"status": "error", "message": "No ID card detected", "data": None}
+    
+    first_cropped = polo_result["detections"][0]["cropped_object"]  # Get cropped ID card
+    
