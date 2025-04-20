@@ -48,6 +48,36 @@ def setup_logging(log_file):
     logger.addHandler(handler)
     return logger
 
+# Process image with YOLO model to detect objects
+def process_image(image, model):
+    result = model(image)  # Run YOLO detection
+    if len(result[0].boxes) == 0:  # Check for detections
+        print("No objects detected")
+        return None
+    detections = []
+    for box in result[0].boxes.data:  # Iterate through detected boxes
+        x1, y1, x2, y2, conf, cls = box.tolist()
+        x1, y1, x2, y2 = map(int, [x1, y1, x2, y2])  # Convert coordinates to integers
+
+        x1, y1, x2, y2 = map(int, [x1, y1, x2, y2])  # Convert coordinates to integers
+        cropped_object = image[y1:y2, x1:x2]  # Crop detected object
+        class_name = model.names[int(cls)]  # Get class name
+        detections.append({"class": class_name, "cropped_object": cropped_object})
+    return {"detections": detections}
+
+# Load and preprocess image from bytes
+def load_image(image_data, is_first_image=True):
+    image = cv2.imdecode(np.frombuffer(image_data, np.uint8), cv2.IMREAD_COLOR)  # Decode image
+    if image is None:
+        print("Failed to decode image")
+        return None
+    height, width = image.shape[:2]
+    # Rotate image if needed based on orientation
+    if is_first_image and height > width:
+        image = cv2.rotate(image, cv2.ROTATE_90_COUNTERCLOCKWISE)
+    elif not is_first_image and width > height:
+        image = cv2.rotate(image, cv2.ROTATE_90_CLOCKWISE)
+    return image
 
 def process_id_card(first_image_data, second_image_data,job_output_dir,log_file):
     logger = setup_logging(log_file) #Initialize logger 
@@ -59,6 +89,11 @@ def process_id_card(first_image_data, second_image_data,job_output_dir,log_file)
     second_image = load_image(second_image_data, False)
     if first_image is None or second_image is None:
         return {"status": "error", "message": "Image loading failed", "data": None}
+    
+    # Detect ID card in first image
+    polo_result = process_image(first_image, MODEL_POLO)
+    if not polo_result:
+        return {"status": "error", "message": "No ID card detected", "data": None}
     
     first_cropped = polo_result["detections"][0]["cropped_object"]  # Get cropped ID card
 
