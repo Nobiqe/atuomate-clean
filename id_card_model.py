@@ -54,5 +54,11 @@ def process_id_card(first_image_data, second_image_data,job_output_dir,log_file)
     if not MODEL_YOLO or MODEL_POLO:
         return {"status": "error", "message": "No ID card detected", "data": None}
     
-    first_cropped = polo_result["detections"][0]["cropped_object"]  # Get cropped ID card
+    # Load images
+    first_image = load_image(first_image_data, True)
+    second_image = load_image(second_image_data, False)
+    if first_image is None or second_image is None:
+        return {"status": "error", "message": "Image loading failed", "data": None}
     
+    first_cropped = polo_result["detections"][0]["cropped_object"]  # Get cropped ID card
+
