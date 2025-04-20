@@ -92,7 +92,29 @@ def detect_and_extract_text(image, is_first_image=True):
         crop_y_end = int(H * SHIFT_PERCENTAGE_RIGHT)
         crop_x_start = int(W * 0.5)
         cropped_image = image[crop_y_start:crop_y_end, crop_x_start:W]
+    image_with_boxes = cropped_image.copy()  # Copy for drawing boxes
+    H_crop, W_crop = cropped_image.shape[:2]  # Get cropped dimensions
 
+    # Preprocess image for OCR
+    def preprocess_image(img):
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)  # Convert to grayscale
+        if is_first_image:
+            bilateral = cv2.bilateralFilter(gray, 9, 75, 75)  # Apply bilateral filter
+            denoised = cv2.fastNlMeansDenoising(bilateral, None, 10, 7, 21)  # Denoise
+            contrasted = cv2.convertScaleAbs(denoised, alpha=1.2, beta=10)  # Adjust contrast
+            kernel = np.array([[-1, -1, -1], [-1, 9, -1], [-1, -1, -1]])  # Sharpening kernel
+            sharpened = cv2.filter2D(contrasted, -1, kernel)  # Apply sharpening
+            _, thresh = cv2.threshold(sharpened, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)  # Threshold
+          #  kernel_close = np.ones((2, 2), np.uint8)
+           # closed = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel_close)  # Morphological close
+           # kernel_open = np.ones((1, 1), np.uint8)
+            #cleaned = cv2.morphologyEx(closed, cv2.MORPH_OPEN, kernel_open)  # Morphological open
+           # kernel_dilate = np.ones((1, 1), np.uint8)
+            #final = cv2.dilate(cleaned, kernel_dilate, iterations=1)  # Dilate
+            return thresh
+        return cv2.GaussianBlur(gray, (3, 3), 0)  # Apply Gaussian blur for second image
+    
+    
 def process_id_card(first_image_data, second_image_data,job_output_dir,log_file):
     logger = setup_logging(log_file) #Initialize logger 
     if not MODEL_YOLO or MODEL_POLO:
