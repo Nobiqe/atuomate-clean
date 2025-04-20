@@ -252,3 +252,34 @@ def process_id_card(first_image_data, second_image_data,job_output_dir,log_file)
         text = convert_persian_to_english_numbers(detection["text"])
         all_texts.append(text)
         print(f"Debug: Second image text: {text}")
+    # Categorize extracted text
+    categorized_texts = {
+        "id_card": "",
+        "first_name": "",
+        "last_name": "",
+        "birth_date": "",
+        "father_name": "",
+        "issue_date": "",
+        "serial_number": ""
+    }
+
+    for text in all_texts:
+        digits = ''.join(filter(str.isdigit, text))
+        if len(digits) == 10 and not categorized_texts["id_card"]:  # ID number
+            categorized_texts["id_card"] = digits
+        elif re.match(r'\d{4} / \d{2} / \d{2}', text):  # Dates
+            if not categorized_texts["birth_date"]:
+                categorized_texts["birth_date"] = text
+            elif not categorized_texts["issue_date"]:
+                categorized_texts["issue_date"] = text
+        # Check serial number first
+        elif len(text) >= 3 and any(c.isalpha() for c in text) and any(c.isdigit() for c in text) and not categorized_texts["serial_number"]:
+            categorized_texts["serial_number"] = text
+        # Then check names
+        elif any(c.isalpha() for c in text):
+            if not categorized_texts["first_name"]:
+                categorized_texts["first_name"] = text
+            elif not categorized_texts["last_name"]:
+                categorized_texts["last_name"] = text
+            elif not categorized_texts["father_name"]:
+                categorized_texts["father_name"] = text        
