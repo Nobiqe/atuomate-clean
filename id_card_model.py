@@ -118,6 +118,5 @@ def process_id_card(first_image_data, second_image_data,job_output_dir,log_file)
     text_result_second = detect_and_extract_text(second_image, False)
     for detection in text_result_second["text_detections"]:
         text = convert_persian_to_english_numbers(detection["text"])
-
         all_texts.append(text)
         print(f"Debug: Second image text: {text}")
