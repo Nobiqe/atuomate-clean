@@ -139,12 +139,12 @@ def detect_and_extract_text(image, is_first_image=True):
             kernel = np.array([[-1, -1, -1], [-1, 9, -1], [-1, -1, -1]])  # Sharpening kernel
             sharpened = cv2.filter2D(contrasted, -1, kernel)  # Apply sharpening
             _, thresh = cv2.threshold(sharpened, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)  # Threshold
-          #  kernel_close = np.ones((2, 2), np.uint8)
-           # closed = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel_close)  # Morphological close
-           # kernel_open = np.ones((1, 1), np.uint8)
-            #cleaned = cv2.morphologyEx(closed, cv2.MORPH_OPEN, kernel_open)  # Morphological open
-           # kernel_dilate = np.ones((1, 1), np.uint8)
-            #final = cv2.dilate(cleaned, kernel_dilate, iterations=1)  # Dilate
+            kernel_close = np.ones((2, 2), np.uint8)
+            closed = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel_close)  # Morphological close
+            kernel_open = np.ones((1, 1), np.uint8)
+            cleaned = cv2.morphologyEx(closed, cv2.MORPH_OPEN, kernel_open)  # Morphological open
+            kernel_dilate = np.ones((1, 1), np.uint8)
+            final = cv2.dilate(cleaned, kernel_dilate, iterations=1)  # Dilate
             return thresh
         return cv2.GaussianBlur(gray, (3, 3), 0)  # Apply Gaussian blur for second image
 
@@ -283,3 +283,22 @@ def process_id_card(first_image_data, second_image_data,job_output_dir,log_file)
                 categorized_texts["last_name"] = text
             elif not categorized_texts["father_name"]:
                 categorized_texts["father_name"] = text        
+    # Write categorized texts to log file
+    with open(log_file, 'w', encoding='utf-8') as f:
+        for key in ["id_card", "first_name", "last_name", "birth_date", "father_name", "issue_date", "serial_number"]:
+            text = categorized_texts[key] or ""
+            logger.info(text)
+            f.write(f"{text}\n")
+        print(f"Debug: Wrote to log file: {categorized_texts}")
+
+    print(f"this is log file {log_file}")
+
+    # Validate extracted text
+    result = check_extracted_lines(log_file)
+    # Add image paths to result
+    result["image_paths"] = {
+        "first_annotated": text_result_first["annotated_path"],
+        "second_annotated": text_result_second["annotated_path"],
+        "person": person_path
+    }
+    return result                
