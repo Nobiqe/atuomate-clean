@@ -113,8 +113,43 @@ def detect_and_extract_text(image, is_first_image=True):
             #final = cv2.dilate(cleaned, kernel_dilate, iterations=1)  # Dilate
             return thresh
         return cv2.GaussianBlur(gray, (3, 3), 0)  # Apply Gaussian blur for second image
-    
-    
+
+    preprocessed = preprocess_image(cropped_image)  # Preprocess image
+    reader = easyocr.Reader(OCR_LANGUAGES if is_first_image else ['fa', 'en'], gpu=False, verbose=False)  # Initialize OCR
+    results = reader.readtext(preprocessed, **OCR_PARAMS)  # Run OCR
+    print(f"Debug: Detected {len(results)} text boxes")
+
+    # Sort and merge text boxes
+    sorted_results = sorted(results, key=lambda x: (x[0][0][1] + x[0][2][1]) / 2)  # Sort by y-coordinate
+    merged_boxes, merged_texts, used = [], [], [False] * len(sorted_results)
+    X_THRESHOLD, Y_THRESHOLD = 50, 10  # Thresholds for merging
+
+    for i in range(len(sorted_results)):
+        if used[i]: continue
+        group, group_texts = [sorted_results[i][0]], [sorted_results[i][1]]  # Start group
+        y_center_i, x_right_i = (group[0][0][1] + group[0][2][1]) / 2, group[0][1][0]
+        for j in range(len(sorted_results)):
+            if used[j] or i == j: continue
+            bbox_j = sorted_results[j][0]
+            y_center_j, x_left_j = (bbox_j[0][1] + bbox_j[2][1]) / 2, bbox_j[0][0]
+            # Merge if close enough
+            if abs(y_center_i - y_center_j) < Y_THRESHOLD and abs(x_right_i - x_left_j) < X_THRESHOLD:
+                group.append(bbox_j)
+                group_texts.append(sorted_results[j][1])
+                used[j] = True
+        merged_bbox = group[0]
+        for bbox in group[1:]:  # Merge bounding boxes
+            merged_bbox = [
+                [min(merged_bbox[0][0], bbox[0][0]), min(merged_bbox[0][1], bbox[0][1])],
+                [max(merged_bbox[1][0], bbox[1][0]), min(merged_bbox[1][1], bbox[1][1])],
+                [max(merged_bbox[2][0], bbox[2][0]), max(merged_bbox[2][1], bbox[2][1])],
+                [min(merged_bbox[3][0], bbox[3][0]), max(merged_bbox[3][1], bbox[3][1])]
+            ]
+        merged_boxes.append(merged_bbox)
+        merged_texts.append(' '.join(group_texts))  # Join texts
+        used[i] = True
+            
+
 def process_id_card(first_image_data, second_image_data,job_output_dir,log_file):
     logger = setup_logging(log_file) #Initialize logger 
     if not MODEL_YOLO or MODEL_POLO:
