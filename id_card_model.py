@@ -35,6 +35,13 @@ try:
 except Exception as e:
     print(f"Error loading models: {e}")
     MODEL_POLO = MODEL_YOLO = None  # Set models to None if loading fails
+# Normalize Persian text (e.g., replace 'آ' with 'ا')
+def normalize_text(text):
+    if isinstance(text, str):
+        text = text.replace('آ', 'ا')  # Replace specific Persian character
+        normalizer = Normalizer()
+        return normalizer.normalize(text)  # Normalize text
+    return text
 
 # Set up logging to file
 def setup_logging(log_file):
