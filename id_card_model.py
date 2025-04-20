@@ -26,3 +26,12 @@ OCR_PARAMS = {  # Parameters for EasyOCR
 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
+# Load YOLO models once at startup
+print("Loading models...")
+try:
+    MODEL_POLO = YOLO("polov11.pt")  # Load Polo YOLO model
+    MODEL_YOLO = YOLO("yolov8x.pt")  # Load YOLOv8x model
+    print("Models loaded successfully")
+except Exception as e:
+    print(f"Error loading models: {e}")
+    MODEL_POLO = MODEL_YOLO = None  # Set models to None if loading fails
