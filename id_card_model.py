@@ -210,7 +210,17 @@ def detect_and_extract_text(image, is_first_image=True):
     output_path = os.path.join(OUTPUT_DIR, f"annotated_{'first' if is_first_image else 'second'}.jpg")
     cv2.imwrite(output_path, image_with_boxes)
     return {"text_detections": text_detections, "annotated_path": output_path}            
-
+def check_extracted_lines(log_file):
+    try:
+        with open(log_file, "r", encoding="utf-8") as f:
+            lines = [line.strip() for line in f.readlines() if line.strip()]  # Read non-empty lines
+        print(f"Debug: Lines read from log file: {lines}")
+    except FileNotFoundError:
+        return {
+            "status": "error",
+            "message": "Log file not found. Please upload the images again.",
+            "data": None
+        }
 def process_id_card(first_image_data, second_image_data,job_output_dir,log_file):
     logger = setup_logging(log_file) #Initialize logger 
     if not MODEL_YOLO or MODEL_POLO:
