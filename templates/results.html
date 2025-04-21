@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ID Card Processing Results</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --primary-color: #3f51b5;
+            --primary-dark: #303f9f;
+            --secondary-color: #4caf50;
+            --secondary-dark: #388e3c;
+            --light-bg: #f9f9f9;
+            --card-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        body {
+            background-color: var(--light-bg);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .app-container {
+            max-width: 1000px;
+            margin: 40px auto;
+            padding: 0;
+        }
+        .app-header {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            color: white;
+            padding: 30px;
+            border-radius: 12px 12px 0 0;
+            text-align: center;
+        }
+        .app-body {
+            background-color: white;
+            padding: 30px;
+            border-radius: 0 0 12px 12px;
+            box-shadow: var(--card-shadow);
+        }
+        .card {
+            border: none;
+            box-shadow: var(--card-shadow);
+        }
+        .card-header {
+            background-color: var(--primary-color);
+            color: white;
+            font-weight: 500;
+        }
+        .person-card .card-header, .verification-card .card-header {
+            background-color: var(--secondary-color);
+        }
+        .person-image-container, .verification-video-container {
+            text-align: center;
+            padding: 20px;
+        }
+        .person-image, .verification-video {
+            max-width: 100%;
+            max-height: 250px;
+            border-radius: 10px;
+            box-shadow: var(--card-shadow);
+        }
+        .id-data-table th {
+            width: 40%;
+            color: #666;
+        }
+        .id-data-table td {
+            font-weight: 500;
+        }
+        .result-image {
+            width: 100%;
+            height: 250px;
+            object-fit: contain;
+            padding: 10px;
+        }
+        .download-btn {
+            border-radius: 50px;
+            padding: 8px 20px;
+        }
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+            border-color: var(--primary-dark);
+        }
+        .btn-success {
+            background-color: var(--secondary-color);
+            border-color: var(--secondary-color);
+        }
+        .btn-success:hover {
+            background-color: var(--secondary-dark);
+            border-color: var(--secondary-dark);
+        }
+        .image-error {
+            color: #dc3545;
+            text-align: center;
+            padding: 20px;
+        }
+        .identity-verification {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #f8f9fa;
+        }
+        @media (max-width: 768px) {
+            .app-container {
+                margin: 20px 15px;
+            }
+            .app-header, .app-body {
+                padding: 20px;
+            }
+            .result-image {
+                height: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="app-header">
+            <h1><i class="bi bi-credit-card-2-front me-2"></i>ID Card Processing Results</h1>
+            <p class="mb-0">View and download the extracted information and verification results</p>
+        </div>
+        
+        <div class="app-body">
+            {% if job.status == 'pending' or job.status == 'processing' %}
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" style="width: 4rem; height: 4rem;" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <h4 class="mt-4">Processing Your ID Card</h4>
+                    <p class="text-muted">Please wait and refresh the page to see the results.</p>
+                    <a href="{{ url_for('results', job_id=job_id) }}" class="btn btn-primary mt-3">
+                        <i class="bi bi-arrow-repeat me-2"></i>Refresh
+                    </a>
+                </div>
+            {% elif job.status == 'error' %}
+                <div class="text-center py-5">
+                    <i class="bi bi-exclamation-triangle text-danger" style="font-size: 4rem;"></i>
+                    <h3 class="text-danger mt-3">Processing Error</h3>
+                    <p class="lead">{{ job.message }}</p>
+                    <a href="{{ url_for('home') }}" class="btn btn-primary mt-3">
+                        <i class="bi bi-arrow-left me-2"></i>Return to Upload Page
+                    </a>
+                </div>
+            {% else %}
+                <!-- Status Alert -->
+                <div class="alert d-flex align-items-center mb-4" role="alert">
+                    {% if job.status == 'success' %}
+                        <i class="bi bi-check-circle-fill me-2" style="font-size: 1.5rem; color: #198754;"></i>
+                        <div>ID card processed successfully!</div>
+                    {% else %}
+                        <i class="bi bi-exclamation-triangle-fill me-2" style="font-size: 1.5rem; color: #ffc107;"></i>
+                        <div>ID card processed with some issues.</div>
+                    {% endif %}
+                </div>
+
+                <div class="row">
+                    <!-- Personal Information Card -->
+                    <div class="col-md-8 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="bi bi-person-vcard me-2"></i>ID Card Information</h5>
+                            </div>
+                            <div class="card-body">
+                                <table class="table table-striped id-data-table">
+                                    <tbody>
+                                        <tr>
+                                            <th>ID Card Number</th>
+                                            <td>{{ job.data.id_card | default('-') }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>First Name</th>
+                                            <td>{{ job.data.first_name | default('-') }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Last Name</th>
+                                            <td>{{ job.data.last_name | default('-') }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Father's Name</th>
+                                            <td>{{ job.data.father_name | default('-') }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Birth Date</th>
+                                            <td>{{ job.data.birth_date | default('-') }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Issue Date</th>
+                                            <td>{{ job.data.issue_date | default('-') }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Serial Number</th>
+                                            <td>{{ job.data.serial_number | default('-') }}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                                <!-- Identity Verification Section -->
+                                <div class="identity-verification">
+                                    <h6><i class="bi bi-shield-check me-2"></i>Identity Verification</h6>
+                                    <p class="mb-1"><strong>Is Alive:</strong> 
+                                        {% if job.data.is_alive is defined %}
+                                            {{ 'Yes' if job.data.is_alive else 'No' }}
+                                        {% else %}
+                                            Unknown
+                                        {% endif %}
+                                    </p>
+                                    <p class="mb-0"><strong>Is Same Person:</strong> 
+                                        {% if job.data.is_same_person is defined %}
+                                            {{ 'Yes' if job.data.is_same_person else 'No' }}
+                                        {% else %}
+                                            Unknown
+                                        {% endif %}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Person Photo Card -->
+                    <div class="col-md-4 mb-4">
+                        <div class="card h-100 person-card">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="bi bi-person-circle me-2"></i>Person Photo</h5>
+                            </div>
+                            <div class="card-body person-image-container">
+                                {% if job.image_paths.person %}
+                                    <img class="person-image" src="{{ job.image_paths.person }}" alt="Person photo">
+                                {% else %}
+                                    <p class="image-error"><i class="bi bi-exclamation-circle me-2"></i>Image not available</p>
+                                {% endif %}
+                            </div>
+                            <div class="card-footer text-center">
+                                {% if job.image_paths.person %}
+                                    <a href="{{ job.image_paths.person }}" class="btn btn-success download-btn" download="person.jpg">
+                                        <i class="bi bi-download me-1"></i>Download Photo
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Verification Video Card -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card verification-card">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="bi bi-camera-video me-2"></i>Verification Video</h5>
+                            </div>
+                            <div class="card-body verification-video-container">
+                                {% if job.image_paths.verification_video %}
+                                    <video class="verification-video" controls>
+                                        <source src="{{ job.image_paths.verification_video }}" type="video/mp4">
+                                        Your browser does not support the video tag.
+                                    </video>
+                                {% else %}
+                                    <p class="image-error"><i class="bi bi-exclamation-circle me-2"></i>Video not available</p>
+                                {% endif %}
+                            </div>
+                            <div class="card-footer text-center">
+                                {% if job.image_paths.verification_video %}
+                                    <a href="{{ job.image_paths.verification_video }}" class="btn btn-success download-btn" download="verification_video.mp4">
+                                        <i class="bi bi-download me-1"></i>Download Video
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Issues Alert (if any) -->
+                {% if job.issues %}
+                    <div class="alert alert-warning mb-4">
+                        <h5 class="alert-heading">
+                            <i class="bi bi-exclamation-triangle me-2"></i>Processing Issues
+                        </h5>
+                        <p>The following issues were detected during processing:</p>
+                        <ul class="issues-list mb-0">
+                            {% for issue in job.issues %}
+                                <li>{{ issue }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+                <!-- Result Images -->
+                <h4 class="mb-3 mt-2">Annotated Images</h4>
+                <div class="row">
+                    <div class="col-md-6 mb-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="bi bi-1-circle me-2"></i>Front Side</h5>
+                            </div>
+                            <div class="card-body p-0">
+                                {% if job.image_paths.first_annotated %}
+                                    <img class="result-image" src="/output_images/annotated_first.jpg" alt="Front annotated">
+                                {% else %}
+                                    <p class="image-error"><i class="bi bi-exclamation-circle me-2"></i>Image not available</p>
+                                {% endif %}
+                            </div>
+                            <div class="card-footer text-center">
+                                {% if job.image_paths.first_annotated %}
+                                    <a href="/output_images/annotated_first.jpg" class="btn btn-primary download-btn" download="front_annotated.jpg">
+                                        <i class="bi bi-download me-1"></i>Download Image
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="bi bi-2-circle me-2"></i>Back Side</h5>
+                            </div>
+                            <div class="card-body p-0">
+                                {% if job.image_paths.second_annotated %}
+                                    <img class="result-image" src="/output_images/annotated_second.jpg" alt="Back annotated">
+                                {% else %}
+                                    <p class="image-error"><i class="bi bi-exclamation-circle me-2"></i>Image not available</p>
+                                {% endif %}
+                            </div>
+                            <div class="card-footer text-center">
+                                {% if job.image_paths.second_annotated %}
+                                    <a href="/output_images/annotated_second.jpg" class="btn btn-primary download-btn" download="back_annotated.jpg">
+                                        <i class="bi bi-download me-1"></i>Download Image
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Action Buttons -->
+                <div class="d-flex justify-content-center mt-4">
+                    <a href="{{ url_for('home') }}" class="btn btn-primary btn-lg me-3">
+                        <i class="bi bi-arrow-repeat me-2"></i>Process Another ID Card
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>
